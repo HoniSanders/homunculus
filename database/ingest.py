@@ -15,6 +15,7 @@ df2 = df.groupby(['batter','pitcher','event']).agg({'count':sum})
 df2 = df2.reset_index()
 p = df2.pivot_table(index=['batter','pitcher'], columns='event', values='count')
 p["at bats"] = p.sum(axis=1)
-p['hits'] = p[["Single", "Double"]].sum(axis=1)
+hitTypes = list(set.intersection(set(["Single", "Double", "Triple", "Home Run"]), set(p.columns)))
+p['hits'] = p[hitTypes].sum(axis=1)
 
 print True
