@@ -1,21 +1,55 @@
+import datetime
 import json
 import pandas as pd
+import re
 
-rawdata = json.load(open('gid_2015_05_30_tbamlb_balmlb_1.json'))
+import db
+import os
 
-x=[]
-for inning in rawdata['data']['game']['inning']:
-    for half in ['top', 'bottom']:
-        if half in inning:
-            x += inning[half]['atbat']
+# TODO: cleanup error handling, remove hard-coded data path, better var names
 
-df = pd.DataFrame(x)
-df['count']=1
-df2 = df.groupby(['batter','pitcher','event']).agg({'count':sum})
-df2 = df2.reset_index()
-p = df2.pivot_table(index=['batter','pitcher'], columns='event', values='count')
-p["at bats"] = p.sum(axis=1)
-hitTypes = list(set.intersection(set(["Single", "Double", "Triple", "Home Run"]), set(p.columns)))
-p['hits'] = p[hitTypes].sum(axis=1)
+def process(filepath, filename):
+    try:
+        rawdata = json.load(open(filepath))
+    except:
+        print "JSON parse ERROR!", filename
+        return
+    x = []
+    for inning in rawdata['data']['game']['inning']:
+        if isinstance(inning, basestring): continue
+        for half in ['top', 'bottom']:
+            if half in inning and 'atbat' in inning[half]:
+                x += inning[half]['atbat']
 
-print True
+    try:
+        df = pd.DataFrame(x)
+    except:
+        print "DataFrame ERROR!", filename
+        return
+
+    df['count']=1
+
+    if 'batter' not in df.columns:
+        print "No Battesr ERROR!", filename
+        return
+
+    df2 = df.groupby(['batter', 'pitcher', 'event']).agg({'count':sum})
+    df2 = df2.reset_index()
+    df2 = df2.pivot_table(index=['batter','pitcher'], columns='event', values='count')
+    df2 = df2.reset_index()
+    df["at_bats"] = df2.sum(axis=1)
+    hitTypes = list(set.intersection(set(["Single", "Double", "Triple", "Home Run"]), set(df2.columns)))
+    df2['hits'] = df2[hitTypes].sum(axis=1)
+
+    df2["game_id"] = filepath.split(".json")[0]
+    match = re.match('gid_(\d+)_(\d+)_(\d+).*', filename)
+    df2["date"] ="{}/{}/{}".format( match.group(2) , match.group(3), match.group(1))
+    df2["date"] = pd.to_datetime(df2["date"])
+    data = df2.to_dict('records')
+    db.insert(data)
+
+for year in ["2015"]:
+    # make this an ENV var
+    base_dir = '/Users/jspeiser/Google Drive/beat-the-streak/{}'.format(year)
+    for filename in os.listdir(base_dir):
+        process(os.path.join(base_dir, filename), filename)
