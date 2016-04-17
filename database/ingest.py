@@ -41,10 +41,12 @@ def process(filepath, filename):
     hitTypes = list(set.intersection(set(["Single", "Double", "Triple", "Home Run"]), set(df2.columns)))
     df2['hits'] = df2[hitTypes].sum(axis=1)
 
-    df2["game_id"] = filepath.split(".json")[0]
+    df2["game_id"] = filename.split(".json")[0]
     match = re.match('gid_(\d+)_(\d+)_(\d+).*', filename)
     df2["date"] ="{}/{}/{}".format( match.group(2) , match.group(3), match.group(1))
     df2["date"] = pd.to_datetime(df2["date"])
+    stadium = re.match('gid_\d+_\d+_\d+_\w+mlb_(\w+)mlb.*', filename)
+    df2["ballpark"] = stadium.group(1)
     data = df2.to_dict('records')
     db.insert(data)
 
