@@ -3,7 +3,7 @@
 * Each line in the submission file should be of the form "Three letter month day,player name"
 * See SampleSelection.txt for an example
 
-Usage ex: caspersjs submit.js SampleSelection.txt
+Usage ex: caspersjs submit.js SampleSelection.txt email pwd
 *******************************************************/
 
 var casper = require('casper').create({
