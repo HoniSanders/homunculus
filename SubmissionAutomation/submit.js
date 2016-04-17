@@ -17,7 +17,11 @@ casper.options.waitTimeout = 30000;
 var x = require('casper').selectXPath;
 
 var selectionFile = casper.cli.args[0];
+var email = casper.cli.args[1];
+var pwd = casper.cli.args[2];
 casper.echo(selectionFile);
+casper.echo(email);
+casper.echo(pwd);
 
 var fs = require('fs');
 var utils = require('utils');
@@ -37,7 +41,7 @@ casper.start('https://secure.mlb.com/enterworkflow.do?flowId=fantasy.bts.btslogi
 
 casper.waitForSelector("#login-form", function() {
     this.echo("found login");
-    this.fill('form[action="/authenticate.do"]', { 'emailAddress': 'siweiss@gmail.com', 'password': 'DontStealThis' }, true);
+    this.fill('form[action="/authenticate.do"]', { 'emailAddress': email, 'password': pwd }, true);
 });
 
 casper.each(selections, function(self, selection) {
