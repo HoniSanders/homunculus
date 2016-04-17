@@ -22,7 +22,7 @@ casper.start('https://secure.mlb.com/enterworkflow.do?flowId=fantasy.bts.btslogi
 
 casper.waitForSelector("#login-form", function() {
     this.echo("found login");
-    this.fill('form[action="/authenticate.do"]', { 'emailAddress': 'siweiss@gmail.com', 'password': 'lucy2306' }, true);
+    this.fill('form[action="/authenticate.do"]', { 'emailAddress': 'siweiss@gmail.com', 'password': 'DontStealThis' }, true);
 });
 
 // login is slow, so wait for full page load
