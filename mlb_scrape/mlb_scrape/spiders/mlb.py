@@ -6,22 +6,29 @@ from scrapy.contrib.linkextractors import LinkExtractor
 
 import json
 
-year = "2016"
+from datetime import datetime
+from datetime import date, timedelta
+
+now_time = datetime.now() - timedelta(days=1)
+year = str(now_time.year)
+month = str(now_time.month).zfill(2)
+day = str(now_time.day).zfill(2)
+
+import ingest
 
 class MlbSpider(CrawlSpider):
     name = "mlb"
 
     allowed_domains = ["mlb.com"]
     start_urls = (
-        'http://gd2.mlb.com/components/game/mlb/year_{}/'.format(year),
+        'http://gd2.mlb.com/components/game/mlb/year_{}/month_{}/day_{}'.format(year, month, day),
     )
     rules = (
         # Extract links matching 'item.php' and parse them with the spider's method parse_item
         Rule(LinkExtractor(allow=('game_events.json', )), callback='parse_item'),
         # and follow links from them (since no callback means follow=True by default)
 
-        Rule(LinkExtractor(deny_extensions=('plist', 'xml'), allow=('month_03/?$', 'day_30/?$', '/gid_'+year+'_\d{2}_\d{2}_.*' ), deny=('notifications','linescore', 'pitchers', 'media', 'inning' 'premium', 'batters', 'xml' ))),
-        Rule(LinkExtractor(deny_extensions=('plist', 'xml'), allow=('month_0[4-9]/?$', 'day_\d{2}/?$', '/gid_'+year+'_\d{2}_\d{2}_.*' ), deny=('notifications','linescore', 'pitchers', 'media', 'inning' 'premium', 'batters', 'xml' ))),
+        Rule(LinkExtractor(deny_extensions=('plist', 'xml'), allow=('month_{}/?$'.format(month), 'day_{}/?$'.format(day), '/gid_{}_{}_{}_.*'.format(year,month,day) ), deny=('notifications','linescore', 'pitchers', 'media', 'inning' 'premium', 'batters', 'xml' ))),
     )
 
     def parse_item(self, response):
@@ -38,4 +45,5 @@ class MlbSpider(CrawlSpider):
             os.makedirs(output_dir)
         target_path = os.path.join(output_dir, '{}.json'.format(name))
         with open(target_path, 'w') as outfile:
-          json.dump(jobj, outfile)
+        #   json.dump(jobj, outfile)
+            ingest.process(jobj, name)
