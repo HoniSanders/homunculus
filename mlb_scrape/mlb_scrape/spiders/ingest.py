@@ -46,4 +46,5 @@ def process(rawdata, filename):
     df2["_id"] = df2["game_id"].astype(str) + "_" + df2["batter"].astype(str) + "_" + df2["pitcher"].astype(str)
     # print df2["_id"].head()
     data = df2.to_dict('records')
+    assert "at_bats" in df2.columns
     db.insert(data)

@@ -37,7 +37,7 @@ def process(filepath, filename):
     df2 = df2.reset_index()
     df2 = df2.pivot_table(index=['batter','pitcher'], columns='event', values='count')
     df2 = df2.reset_index()
-    df["at_bats"] = df2.sum(axis=1)
+    df2["at_bats"] = df2.sum(axis=1)
     hitTypes = list(set.intersection(set(["Single", "Double", "Triple", "Home Run"]), set(df2.columns)))
     df2['hits'] = df2[hitTypes].sum(axis=1)
 
