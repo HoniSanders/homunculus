@@ -8,12 +8,7 @@ import os
 
 # TODO: cleanup error handling, remove hard-coded data path, better var names
 
-def process(filepath, filename):
-    try:
-        rawdata = json.load(open(filepath))
-    except:
-        print "JSON parse ERROR!", filename
-        return
+def process(rawdata, filename):
     x = []
     for inning in rawdata['data']['game']['inning']:
         if isinstance(inning, basestring): continue
