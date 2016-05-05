@@ -63,6 +63,7 @@ def process(filepath, filename):
     df2["date"] = pd.to_datetime(df2["date"])
     stadium = re.match('gid_\d+_\d+_\d+_\w+mlb_(\w+)mlb.*', filename)
     df2["ballpark"] = stadium.group(1)
+    df2["_id"] = df2["game_id"].astype(str) + "_" + df2["batter"].astype(str) + "_" + df2["pitcher"].astype(str)
     data = df2.to_dict('records')
     db.insert(data)
 

@@ -8,8 +8,12 @@ import os
 
 # TODO: cleanup error handling, remove hard-coded data path, better var names
 
-def process(rawdata, filename):
-
+def process(filepath, filename):
+    try:
+        rawdata = json.load(open(filepath))
+    except:
+        print "JSON parse ERROR!", filename
+        return
     x = []
     for inning in rawdata['data']['game']['inning']:
         if isinstance(inning, basestring): continue
@@ -23,19 +27,35 @@ def process(rawdata, filename):
         print "DataFrame ERROR!", filename
         return
 
-    df['count']=1
+    df['count'] = 1
 
     if 'batter' not in df.columns:
-        print "No Battesr ERROR!", filename
+        print "No Batters ERROR!", filename
         return
 
     df2 = df.groupby(['batter', 'pitcher', 'event']).agg({'count':sum})
     df2 = df2.reset_index()
     df2 = df2.pivot_table(index=['batter','pitcher'], columns='event', values='count')
     df2 = df2.reset_index()
-    df2["at_bats"] = df2.sum(axis=1)
-    hitTypes = list(set.intersection(set(["Single", "Double", "Triple", "Home Run"]), set(df2.columns)))
-    df2['hits'] = df2[hitTypes].sum(axis=1)
+    df2["plate_appearances"] = df2.sum(axis=1)
+    eventTypes = ["Batter Interference", "Bunt Groundout", "Bunt Lineout", "Bunt Pop Out", "Catcher Interference",
+                   "Double", "Double Play", "Fan interference", "Field Error", "Fielders Choice", "Fielders Choice Out",
+                   "Flyout", "Forceout", "Grounded Into DP", "Groundout", "Hit By Pitch", "Home Run", "Intent Walk",
+                   "Lineout", "Pop Out", "Runner Out", "Sac Bunt", "Sac Fly", "Sac Fly DP", "Sacrifice Bunt DP",
+                   "Single", "Strikeout", "Strikeout - DP", "Triple", "Triple Play", "Walk",
+                   ]
+    atbatTypes = ["Bunt Groundout", "Bunt Lineout", "Bunt Pop Out",
+                   "Double", "Double Play", "Field Error", "Fielders Choice", "Fielders Choice Out",
+                   "Flyout", "Forceout", "Grounded Into DP", "Groundout", "Home Run",
+                   "Lineout", "Pop Out", "Runner Out",
+                   "Single", "Strikeout", "Strikeout - DP", "Triple", "Triple Play",
+                   ]
+    hitTypes = ["Single", "Double", "Triple", "Home Run"]
+    tmp = list(set.intersection(set(hitTypes), set(df2.columns)))
+    df2['hits'] = df2[tmp].sum(axis=1)
+
+    tmp = list(set.intersection(set(atbatTypes), set(df2.columns)))
+    df2['atbats'] = df2[tmp].sum(axis=1)
 
     df2["game_id"] = filename.split(".json")[0]
     match = re.match('gid_(\d+)_(\d+)_(\d+).*', filename)
@@ -44,7 +64,5 @@ def process(rawdata, filename):
     stadium = re.match('gid_\d+_\d+_\d+_\w+mlb_(\w+)mlb.*', filename)
     df2["ballpark"] = stadium.group(1)
     df2["_id"] = df2["game_id"].astype(str) + "_" + df2["batter"].astype(str) + "_" + df2["pitcher"].astype(str)
-    # print df2["_id"].head()
     data = df2.to_dict('records')
-    assert "at_bats" in df2.columns
-    db.insert(data)
+    db.insert(data, 'game_data_new')
