@@ -5,8 +5,8 @@ import json
 import pprint
 import urllib2
 
-
-FEED_URL = "http://gd2.mlb.com/components/game/mlb/{:year_%Y/month_%m/day_%d}/master_scoreboard.json"
+MLB_DATA_DOMAIN = "http://gd2.mlb.com"
+FEED_URL = "%s/components/game/mlb/{:year_%%Y/month_%%m/day_%%d}/master_scoreboard.json" % MLB_DATA_DOMAIN
 
 class Team:
   def __init__(self):
@@ -70,15 +70,20 @@ def deunicode(input):
   else:
     return input
 
+def _LoadJson(url):
+  response = urllib2.urlopen(url)
+  txt_response = response.read()
+  return deunicode(json.loads(txt_response))
+
 def FetchGames(year, month, day):
   date = datetime.datetime(year, month, day)
   url = FEED_URL.format(date)
-  response = urllib2.urlopen(url)
-  txt_response = response.read()
-  json_response = deunicode(json.loads(txt_response))
+  json_response = _LoadJson(url)
   games = []
   for game in json_response['data']['games']['game']:
     game_info = GameInfo()
+
+    game_info.game_data_dir = game['game_data_directory']
 
     game_info.home_team.name = game['home_team_name']
     game_info.home_team.code = game['home_code']
@@ -101,8 +106,9 @@ def FetchGames(year, month, day):
     game_info.park.venue_id = int(game['venue_id'])
     game_info.park.weather_code = game['venue_w_chan_loc']
 
+    boxscore = None
+    game_info.home_pitcher = Pitcher()
     if 'home_probable_pitcher' in game and game['home_probable_pitcher']['id'] != '':
-      game_info.home_pitcher = Pitcher()
       game_info.home_pitcher.first_name = game['home_probable_pitcher']['first_name']
       game_info.home_pitcher.last_name = game['home_probable_pitcher']['last_name']
       game_info.home_pitcher.player_id = int(game['home_probable_pitcher']['id'])
@@ -111,9 +117,24 @@ def FetchGames(year, month, day):
       game_info.home_pitcher.wins = int(game['home_probable_pitcher']['s_wins'])
       game_info.home_pitcher.losses = int(game['home_probable_pitcher']['s_losses'])
       game_info.home_pitcher.throwing_hand = game['home_probable_pitcher']['throwinghand']
+    else:
+      boxscore_url = "%s%s/boxscore.json" % (MLB_DATA_DOMAIN, game_info.game_data_dir)
+      try:
+        boxscore = _LoadJson(boxscore_url)
+        pitcher_data = boxscore['data']['boxscore']['pitching'][1]['pitcher'][0]
+        names = pitcher_data['name_display_first_last'].split(' ', 1)
+        game_info.home_pitcher.first_name = names[0]
+        game_info.home_pitcher.last_name = names[1]
+        game_info.home_pitcher.player_id = int(pitcher_data['id'])
+        era = pitcher_data['era']
+        game_info.home_pitcher.era = float(era) if era != '-.--' else float('inf')
+        game_info.home_pitcher.wins = int(pitcher_data['w'])
+        game_info.home_pitcher.losses = int(pitcher_data['l'])
+      except urllib2.HTTPError:
+        pass
 
+    game_info.away_pitcher = Pitcher()
     if 'away_probable_pitcher' in game and game['away_probable_pitcher']['id'] != '':
-      game_info.away_pitcher = Pitcher()
       game_info.away_pitcher.first_name = game['away_probable_pitcher']['first_name']
       game_info.away_pitcher.last_name = game['away_probable_pitcher']['last_name']
       game_info.away_pitcher.player_id = int(game['away_probable_pitcher']['id'])
@@ -122,6 +143,23 @@ def FetchGames(year, month, day):
       game_info.away_pitcher.wins = int(game['away_probable_pitcher']['s_wins'])
       game_info.away_pitcher.losses = int(game['away_probable_pitcher']['s_losses'])
       game_info.away_pitcher.throwing_hand = game['away_probable_pitcher']['throwinghand']
+    else:
+      if boxscore is None:
+        boxscore_url = "%s%s/boxscore.json" % (MLB_DATA_DOMAIN, game_info.game_data_dir)
+        try:
+          boxscore = _LoadJson(boxscore_url)
+        except urllib2.HTTPError:
+          pass
+      if boxscore is not None:
+        pitcher_data = boxscore['data']['boxscore']['pitching'][0]['pitcher'][0]
+        names = pitcher_data['name_display_first_last'].split(' ', 1)
+        game_info.away_pitcher.first_name = names[0]
+        game_info.away_pitcher.last_name = names[1]
+        game_info.away_pitcher.player_id = int(pitcher_data['id'])
+        era = pitcher_data['era']
+        game_info.away_pitcher.era = float(era) if era != '-.--' else float('inf')
+        game_info.away_pitcher.wins = int(pitcher_data['w'])
+        game_info.away_pitcher.losses = int(pitcher_data['l'])
 
     if 'media' in game['game_media']:
       start_time = ''
@@ -136,7 +174,6 @@ def FetchGames(year, month, day):
                                                            game['ampm'],
                                                            game['time_zone']))
     game_info.scheduled_innings = int(game['scheduled_innings'])
-    game_info.game_data_dir = game['game_data_directory']
 
     games.append(game_info)
 
