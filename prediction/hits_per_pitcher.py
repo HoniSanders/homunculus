@@ -1,0 +1,38 @@
+import requests
+import json
+from pymongo import MongoClient
+from datetime import datetime
+import pandas as pd
+import sys
+
+sys.path.append("../upcoming_games")
+import upcoming_games
+
+def hits_per_game(pitchers):
+    client = MongoClient('mongodb://mlb:hellodata@homunculus.mit.edu/?authMechanism=SCRAM-SHA-1')
+    db = client['baseball']
+    col = db['game_data']
+
+    date = datetime(2015, 4, 9)
+    pitcher_map = [{ "pitcher": str(pitcher.player_id), "name" : pitcher.first_name + " " + pitcher.last_name } for pitcher in pitchers]
+    pitcher_df = pd.DataFrame(pitcher_map)
+
+    records = list(col.find({'date': {'$gt': date}, 'pitcher': {'$in': list(pitcher_df.pitcher.values) }}))
+    print len(records)
+    df = pd.DataFrame(records)
+    df = df.groupby(["pitcher", "game_id"]).agg({"hits": sum}).reset_index()
+    df = df.groupby(["pitcher"]).agg({ "hits": pd.Series.mean }).reset_index()
+
+    return df.merge(pitcher_df, on='pitcher').sort('hits')
+
+def get_pitchers(year, month, day):
+    pitchers = []
+    upcoming = upcoming_games.FetchGames(year, month, day)
+    for game in upcoming:
+        pitchers.append(game.home_pitcher)
+        pitchers.append(game.away_pitcher)
+    return pitchers
+
+pitchers = get_pitchers(2016,5,5)
+result = hits_per_game(pitchers)
+print result
