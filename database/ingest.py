@@ -27,19 +27,35 @@ def process(filepath, filename):
         print "DataFrame ERROR!", filename
         return
 
-    df['count']=1
+    df['count'] = 1
 
     if 'batter' not in df.columns:
-        print "No Battesr ERROR!", filename
+        print "No Batters ERROR!", filename
         return
 
     df2 = df.groupby(['batter', 'pitcher', 'event']).agg({'count':sum})
     df2 = df2.reset_index()
     df2 = df2.pivot_table(index=['batter','pitcher'], columns='event', values='count')
     df2 = df2.reset_index()
-    df["at_bats"] = df2.sum(axis=1)
-    hitTypes = list(set.intersection(set(["Single", "Double", "Triple", "Home Run"]), set(df2.columns)))
-    df2['hits'] = df2[hitTypes].sum(axis=1)
+    df2["plate_appearances"] = df2.sum(axis=1)
+    eventTypes = ["Batter Interference", "Bunt Groundout", "Bunt Lineout", "Bunt Pop Out", "Catcher Interference",
+                   "Double", "Double Play", "Fan interference", "Field Error", "Fielders Choice", "Fielders Choice Out",
+                   "Flyout", "Forceout", "Grounded Into DP", "Groundout", "Hit By Pitch", "Home Run", "Intent Walk",
+                   "Lineout", "Pop Out", "Runner Out", "Sac Bunt", "Sac Fly", "Sac Fly DP", "Sacrifice Bunt DP",
+                   "Single", "Strikeout", "Strikeout - DP", "Triple", "Triple Play", "Walk",
+                   ]
+    atbatTypes = ["Bunt Groundout", "Bunt Lineout", "Bunt Pop Out",
+                   "Double", "Double Play", "Field Error", "Fielders Choice", "Fielders Choice Out",
+                   "Flyout", "Forceout", "Grounded Into DP", "Groundout", "Home Run",
+                   "Lineout", "Pop Out", "Runner Out",
+                   "Single", "Strikeout", "Strikeout - DP", "Triple", "Triple Play",
+                   ]
+    hitTypes = ["Single", "Double", "Triple", "Home Run"]
+    tmp = list(set.intersection(set(hitTypes), set(df2.columns)))
+    df2['hits'] = df2[tmp].sum(axis=1)
+
+    tmp = list(set.intersection(set(atbatTypes), set(df2.columns)))
+    df2['atbats'] = df2[tmp].sum(axis=1)
 
     df2["game_id"] = filename.split(".json")[0]
     match = re.match('gid_(\d+)_(\d+)_(\d+).*', filename)
