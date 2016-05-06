@@ -26,7 +26,7 @@ def hits_per_game(pitchers):
 
     return df.merge(pitcher_df, on='pitcher').sort('hits')
 
-def get_pitchers(year, mongodbnth, day):
+def get_pitchers(year, month, day):
     pitchers = []
     upcoming = upcoming_games.FetchGames(year, month, day)
     for game in upcoming:
@@ -43,6 +43,7 @@ def get_opposing_lineup(team, year, month, day):
 
 pitchers = get_pitchers(2016,5,5)
 result = hits_per_game(pitchers)
+print result
 opposing_lineup = get_opposing_lineup('PIT', 2016,5,3)
 
 
