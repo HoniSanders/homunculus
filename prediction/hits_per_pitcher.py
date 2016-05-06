@@ -10,8 +10,20 @@ import upcoming_games
 
 client = MongoClient('mongodb://mlb:hellodata@homunculus.mit.edu/?authMechanism=SCRAM-SHA-1')
 db = client['baseball']
-game_data = db['game_data']
+game_data = db['game_data_new']
 player_data = db['players']
+
+
+def plate_appearances_by_team():
+    date = datetime(2016, 4, 3)
+    player_df = pd.DataFrame(list(player_data.find()))
+    records = list(game_data.find({'date': {'$gt': date}}))
+    df = pd.DataFrame(records)
+    df = df.merge(player_df, left_on="batter", right_on="player_id")
+    df = df.groupby(["team_abbrev", "date"]).agg({"plate_appearances": sum}).reset_index()
+    df = df.groupby(["team_abbrev"]).agg({ "plate_appearances": pd.Series.mean }).reset_index().sort('plate_appearances')
+    return df
+
 
 def hits_per_game(pitchers):
     date = datetime(2015, 4, 9)
@@ -44,8 +56,6 @@ def get_opposing_lineup(team, year, month, day):
 pitchers = get_pitchers(2016,5,5)
 result = hits_per_game(pitchers)
 print result
+
+
 opposing_lineup = get_opposing_lineup('PIT', 2016,5,3)
-
-
-
-
