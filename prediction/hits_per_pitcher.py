@@ -13,6 +13,14 @@ db = client['baseball']
 game_data = db['game_data_new']
 player_data = db['players']
 
+def hits_by_ballpark():
+    date = datetime(2016, 4, 3)
+    records = list(game_data.find({'date': {'$gt': date}}))
+    df = pd.DataFrame(records)
+    df = df.groupby(["ballpark", "date"]).agg({"hits": sum}).reset_index()
+    df = df.groupby(["ballpark"]).agg({ "hits": pd.Series.mean }).reset_index().sort('hits')
+    return df
+
 
 def plate_appearances_by_team():
     date = datetime(2016, 4, 3)
