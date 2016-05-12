@@ -28,7 +28,7 @@ class MlbSpider(CrawlSpider):
         Rule(LinkExtractor(allow=('game_events.json', )), callback='parse_item'),
         # and follow links from them (since no callback means follow=True by default)
 
-        Rule(LinkExtractor(deny_extensions=('plist', 'xml'), allow=('month_{}/?$'.format(month), 'day_{}/?$'.format(day), '/gid_{}_{}_{}_.*'.format(year,month,day) ), deny=('notifications','linescore', 'pitchers', 'media', 'inning' 'premium', 'batters', 'xml' ))),
+        Rule(LinkExtractor(deny_extensions=('plist', 'xml'), allow=('month_{}/?$'.format(month), 'day_{}/?$'.format(day), '/gid_{}_{}_{}_.+'.format(year,month,day) ), deny=('notifications','linescore', 'pitchers', 'media', 'inning' 'premium', 'batters',))),
     )
 
     def parse_item(self, response):
