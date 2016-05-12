@@ -121,7 +121,9 @@ def FetchGames(year, month, day):
       boxscore_url = "%s%s/boxscore.json" % (MLB_DATA_DOMAIN, game_info.game_data_dir)
       try:
         boxscore = _LoadJson(boxscore_url)
-        pitcher_data = boxscore['data']['boxscore']['pitching'][1]['pitcher'][0]
+        pitcher_data = boxscore['data']['boxscore']['pitching'][1]['pitcher']
+        if isinstance(pitcher_data, list):
+            pitcher_data = pitcher_data[0]
         names = pitcher_data['name_display_first_last'].split(' ', 1)
         game_info.home_pitcher.first_name = names[0]
         game_info.home_pitcher.last_name = names[1]
